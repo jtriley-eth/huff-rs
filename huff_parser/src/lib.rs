@@ -11,6 +11,7 @@ use huff_utils::{
     prelude::{bytes32_to_string, hash_bytes, str_to_bytes32, Span},
     token::{Token, TokenKind},
     types::*,
+    version::{Comparator, Version},
 };
 use regex::Regex;
 
@@ -122,6 +123,11 @@ impl Parser {
                         });
                     }
                 };
+            }
+            // Check for pragma
+            else if self.check(TokenKind::Pragma) {
+                let _ = self.parse_pragma()?;
+                tracing::info!(target: "parser", "SUCCESSFULLY PARSED PRAGMA");
             } else {
                 // If we don't have an "#include" or "#define" keyword, we have an invalid token
                 return Err(ParserError {
@@ -532,6 +538,104 @@ impl Parser {
             outlined,
             test,
         ))
+    }
+
+    /// Parse the pragma statement
+    pub fn parse_pragma(&mut self) -> Result<(), ParserError> {
+        if !self.check(TokenKind::Ident("huff".to_string())) {
+            return Err(ParserError {
+                kind: ParserErrorKind::InvalidPragma,
+                hint: Some(String::from("Invalid pragma")),
+                spans: AstSpan(self.spans.clone()),
+            })
+        }
+
+        let mut comparator: Option<Comparator> = None;
+
+        let meta_flags =
+            [TokenKind::LeftAngle, TokenKind::RightAngle, TokenKind::Assign, TokenKind::Caret];
+
+        let current_kind = self.current_token.kind.clone();
+        if meta_flags.contains(&current_kind) {
+            self.consume();
+            let next_kind = self.current_token.kind.clone();
+            if meta_flags.contains(&next_kind) {
+                self.consume();
+                comparator = match (&current_kind, &next_kind) {
+                    (TokenKind::LeftAngle, TokenKind::Assign) => Some(Comparator::Lte),
+                    (TokenKind::RightAngle, TokenKind::Assign) => Some(Comparator::Gte),
+                    (TokenKind::Assign, TokenKind::Assign) => Some(Comparator::Eq),
+                    (_, _) => {
+                        return Err(ParserError {
+                            kind: ParserErrorKind::InvalidPragma,
+                            hint: Some(String::from("Invalid pragma")),
+                            spans: AstSpan(self.spans.clone()),
+                        })
+                    }
+                };
+            } else {
+                comparator = match current_kind {
+                    TokenKind::LeftAngle => Some(Comparator::Lt),
+                    TokenKind::RightAngle => Some(Comparator::Gt),
+                    TokenKind::Assign => Some(Comparator::Eq),
+                    TokenKind::Caret => Some(Comparator::Gte),
+                    _ => panic!("Invalid pragma comparator (this should never happen)"),
+                };
+            }
+        }
+
+        self.consume();
+
+        let major = match &self.current_token.kind {
+            TokenKind::Num(n) => *n,
+            _ => {
+                return Err(ParserError {
+                    kind: ParserErrorKind::InvalidPragma,
+                    hint: Some(String::from("Invalid Major Number")),
+                    spans: AstSpan(self.spans.clone()),
+                })
+            }
+        };
+
+        let _ = self.match_kind(TokenKind::Dot)?;
+        self.consume();
+
+        let minor = match &self.current_token.kind {
+            TokenKind::Num(n) => *n,
+            _ => {
+                return Err(ParserError {
+                    kind: ParserErrorKind::InvalidPragma,
+                    hint: Some(String::from("Invalid Minor Number")),
+                    spans: AstSpan(self.spans.clone()),
+                })
+            }
+        };
+
+        let _ = self.match_kind(TokenKind::Dot)?;
+        self.consume();
+
+        let patch = match &self.current_token.kind {
+            TokenKind::Num(n) => *n,
+            _ => {
+                return Err(ParserError {
+                    kind: ParserErrorKind::InvalidPragma,
+                    hint: Some(String::from("Invalid Patch Number")),
+                    spans: AstSpan(self.spans.clone()),
+                })
+            }
+        };
+
+        let version = Version::new(major, minor, patch, comparator);
+
+        if !version.is_valid() {
+            return Err(ParserError {
+                kind: ParserErrorKind::InvalidPragma,
+                hint: Some(format!("Invalid Verison {}", version.to_string())),
+                spans: AstSpan(self.spans.clone()),
+            })
+        }
+
+        Ok(())
     }
 
     /// Parse the body of a macro.

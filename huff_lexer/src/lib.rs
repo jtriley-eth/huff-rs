@@ -139,7 +139,7 @@ impl<'a> Lexer<'a> {
 
                     let mut found_kind: Option<TokenKind> = None;
 
-                    let keys = [TokenKind::Define, TokenKind::Include];
+                    let keys = [TokenKind::Define, TokenKind::Include, TokenKind::Pragma];
                     for kind in keys.into_iter() {
                         let key = kind.to_string();
                         let peeked = word.clone();
@@ -400,6 +400,8 @@ impl<'a> Lexer<'a> {
                 ':' => self.single_char_token(TokenKind::Colon),
                 // identifiers
                 ',' => self.single_char_token(TokenKind::Comma),
+                '^' => self.single_char_token(TokenKind::Caret),
+                '.' => self.single_char_token(TokenKind::Dot),
                 '0'..='9' => self.eat_digit(ch),
                 // Lexes Spaces and Newlines as Whitespace
                 ch if ch.is_ascii_whitespace() => {

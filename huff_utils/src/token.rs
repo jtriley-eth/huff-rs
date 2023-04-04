@@ -33,6 +33,8 @@ pub enum TokenKind {
     Define,
     /// "#include" keyword
     Include,
+    /// "#pragma" keyword
+    Pragma,
     /// "macro" keyword
     Macro,
     /// "fn" keyword
@@ -95,6 +97,10 @@ pub enum TokenKind {
     Colon,
     /// A pound
     Pound,
+    /// A caret
+    Caret,
+    /// A dot
+    Dot,
     /// Number
     Num(usize),
     /// A Space
@@ -151,6 +157,7 @@ impl fmt::Display for TokenKind {
             TokenKind::Div => "/",
             TokenKind::Define => "#define",
             TokenKind::Include => "#include",
+            TokenKind::Pragma => "#pragma",
             TokenKind::Macro => "macro",
             TokenKind::Fn => "fn",
             TokenKind::Test => "test",
@@ -182,6 +189,8 @@ impl fmt::Display for TokenKind {
             TokenKind::Colon => ":",
             TokenKind::Comma => ",",
             TokenKind::Pound => "#",
+            TokenKind::Caret => "^",
+            TokenKind::Dot => ".",
             TokenKind::Num(num) => return write!(f, "{num}"),
             TokenKind::Whitespace => " ",
             TokenKind::Str(str) => str,

@@ -6,6 +6,9 @@
 #![warn(unused_extern_crates)]
 #![forbid(unsafe_code)]
 
+/// Version Module
+pub mod version;
+
 /// Abi Module
 pub mod abi;
 
@@ -58,6 +61,6 @@ pub mod wasm;
 pub mod prelude {
     pub use crate::{
         abi::*, artifact::*, ast::*, bytecode::*, bytes_util::*, error::*, evm::*, files::*, io::*,
-        report::*, sol_interface::*, token::*, types::*,
+        report::*, sol_interface::*, token::*, types::*, version::*,
     };
 }

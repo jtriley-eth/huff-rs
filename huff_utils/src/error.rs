@@ -21,6 +21,8 @@ pub struct ParserError {
 /// A Type of Parser Error
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
 pub enum ParserErrorKind {
+    /// An invalid pragma was provided
+    InvalidPragma,
     /// An invalid literal was passed to a push opcode
     InvalidPush(Opcode),
     /// Unexpected type
@@ -321,6 +323,9 @@ impl fmt::Display for CompilerError {
                 }
             },
             CompilerError::ParserError(pe) => match &pe.kind {
+                ParserErrorKind::InvalidPragma => {
+                    write!(f, "\nError: Invalid Pragma \n{}\n", pe.spans.error(pe.hint.as_ref()))
+                }
                 ParserErrorKind::InvalidPush(op) => {
                     write!(
                         f,
