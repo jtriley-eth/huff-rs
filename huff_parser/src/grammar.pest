@@ -1,0 +1,52 @@
+// Huff Parser Expression Grammar
+
+contract = {
+    SOI
+    ~ directive*
+    ~ EOI
+}
+
+directive = {
+    version
+    | include
+    | define
+}
+
+version = { "#pragma" ~ semver }
+semver = { "^"? ~ decimal ~ "." ~ decimal ~ "." ~ decimal }
+
+include = { "#include" ~ string }
+
+define = { "#define" ~ (abi_function | abi_event | constant | macro | function) }
+
+// -- ABI Tokens --
+abi_function = { "function" ~ identifier ~ abi_function_arguments ~ abi_mutability ~ abi_returns }
+abi_event = { "event" ~ identifier ~ abi_event_arguments }
+
+abi_function_arguments = { "(" ~ (abi_type ~ identifier? ~ ",")* ~ (abi_type ~ indentifier?)? ~ ")" }
+abi_mutability = { "pure" | "view" | "nonpayable" | "payable" }
+abi_returns = { "returns" ~ abi_function_arguments }
+abi_event_arguments = { "(" ~ (abi_type ~ "indexed" ~ identifier? ~ ",")* ~ (abi_type ~ "indexed" ~ indentifier?)? ~ ")" }
+
+// -- Constant / Macro / Function Tokens --
+constant = { "constant" ~ identifier ~ "=" ~ number }
+macro = { "macro" ~ identifier ~ arguments ~ "=" ~ "takes" ~ stack_arguments ~ "returns" ~ stack_arguments ~ "{" ~ expression* ~ "}" }
+function = { "function" ~ identifier ~ arguments ~ "=" ~ "takes" ~ stack_arguments ~ "returns" ~ stack_arguments ~ "{" ~ expression* ~ "}" }
+
+
+// -- Primitive Tokens -- 
+identifier = { (ASCII_ALPHA | "_") ~ (ASCII_ALPHANUMERIC | "_")* }
+stack_arguments = { "(" ~ decimal ~ ")" }
+arguments = { "(" ~ (identifier ~ ",")* ~ identifier ~ ")" }
+string = { "\"" ~ (!"\"" ~ ANY)* ~ "\"" }
+number = { decimal | hexadecimal | binary }
+hexadecimal = @{ "0x" ~ ASCII_HEX_DIGIT ~ (ASCII_HEX_DIGIT ~ "_")* ~ "_" }
+decimal = @{ ASCII_DIGIT ~ (ASCII_DIGIT ~ "_")* ~ !"_" }
+binary = @{ "0b" ~ ASCII_BIN_DIGIT ~ (ASCII_BIN_DIGIT ~ "_")* ~ !"_" }
+
+// -- PEST Built-on Tokens --
+COMMENT = {
+    ("//" ~ (!NEWLINE ~ ANY)* ~ NEWLINE)
+    | ("/*" ~ (!"*/" ~ ANY)* ~ "*/")
+}
+WHITESPACE = { NEWLINE ~ " " ~ "\t" }
